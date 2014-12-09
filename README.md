@@ -1,6 +1,7 @@
 # vcd
 
 VCD file command line viewer
+It can be used a lightweight remplacement to GTKWave (16801 KB vs 6 KB)
 
 ## Usage
 

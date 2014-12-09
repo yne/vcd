@@ -18,8 +18,8 @@ typedef struct{
 }Parameters;
 
 typedef struct{
-	char size;
-	char scope;
+	int  size;
+	int  scope;
 	char name[MAX_NAME];
 	char    type[MAX_SAMPLE];//'U','Z','\0'=Data
 	unsigned val[MAX_SAMPLE];
@@ -35,8 +35,8 @@ typedef struct{
 	int cur_scopes;
 }Parser;
 
-int showHelp(char*arg0,Parameters*p){
-	return fprintf(stderr,"Usage: %s [FILE] [OPTION]...:\n"
+void showHelp(char*arg0,Parameters*p){
+	fprintf(stderr,"Usage: %s [FILE] [OPTION]...:\n"
 				" -h	: display this help screen\n"
 				" -v=%i	: verbose level (0:fatal,1:error,2:warning,3:debug)\n"
 				" -w=%i	: sample ascii width\n"
@@ -46,7 +46,7 @@ int showHelp(char*arg0,Parameters*p){
 				,arg0,p->verbose,p->width,p->round);
 }
 
-int parseArgs(int argc,char**argv,Parameters*params){
+void parseArgs(int argc,char**argv,Parameters*params){
 	int i;
 	for(i=1;i<argc;i++){//parse "-" arguments
 		if(argv[i][0]!='-'){
@@ -67,14 +67,12 @@ int parseArgs(int argc,char**argv,Parameters*params){
 
 void parseInst(Parameters*params,Parser*p){
 	char token[32];
-	char data[128];
-	int c,data_pos=0;
-	
 	fscanf(params->fin,"%31s",token);
 	//printf("%s\n",token);
 	if(!strcmp("var",token)){
-		char id='\0',size=0;Channel tmp={};
-		fscanf(params->fin," reg %d %c %31[^ $]",&(tmp.size),&id,&(tmp.name));//space in name allowed ?
+		int id=0;
+		Channel tmp={};
+		fscanf(params->fin," reg %d %c %31[^ $]",&(tmp.size),(char*)&id,tmp.name);//space in name allowed ?
 		p->ch[id]=tmp;//printf("size=%i <%c> name=<%s>\n",size,id,data);
 		p->ch[id].scope=p->cur_scopes;
 	}
@@ -113,8 +111,8 @@ void parseTime(Parameters*params,Parser*p){
 
 void parseData(Parameters*params,Parser*p){
 	unsigned data=0,base=10;
-	char type='\0',id='\0';
-	int c=fgetc(params->fin);
+	char type='\0';
+	int id=0,c=fgetc(params->fin);
 	if(c=='b'){//parsing bus data b%[0-9UZ]+ %c
 		base=2;
 		while((c=fgetc(params->fin))!=EOF && c!=' '){
@@ -150,7 +148,7 @@ void parseFile(Parameters*params,Parser*p){
 }
 
 void showVertical(Parameters*params,Parser*p){
-	int chan,smpl,w,prev_scope=0;
+	int chan,smpl,w;
 	
 	if(p->nb      )fprintf(params->fout,"%i samples",p->nb);
 	if(p->date [0])fprintf(params->fout," / %s",p->date);
@@ -166,7 +164,7 @@ void showVertical(Parameters*params,Parser*p){
 		if((!chan && p->ch[chan].scope) || (chan>0 && (p->ch[chan].scope!=p->ch[chan-1].scope)))
 			fprintf(params->fout,"+-- %s\n",p->ch[chan].scope?p->scopes[p->ch[chan].scope]:"");
 		
-		fprintf(params->fout,"%c % 10s(%c)[%2i]: ",p->ch[chan].scope?'|':' ',p->ch[chan].name,chan,p->ch[chan].size);
+		fprintf(params->fout,"%c %10s(%c)[%2i]: ",p->ch[chan].scope?'|':' ',p->ch[chan].name,chan,p->ch[chan].size);
 		for(smpl=0;smpl < p->nb ;smpl++){
 			char     type = p->ch[chan].type[smpl];
 			unsigned data = p->ch[chan].val [smpl];
@@ -180,7 +178,7 @@ void showVertical(Parameters*params,Parser*p){
 						w-=1;
 					}
 				}
-				while(w-->0)fprintf(params->fout,"%c",type?type:(data?238:95));
+				while(w-->0)fprintf(params->fout,"%c",type?type:(data?/*238*/'-':95));
 			}else{//bus
 				if(p->ch[chan].type[smpl])//not a data
 					fprintf(params->fout,"%*c",params->width,p->ch[chan].type[smpl]);

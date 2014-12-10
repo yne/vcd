@@ -164,7 +164,7 @@ void showVertical(Parameters*params,Parser*p){
 		if((!chan && p->ch[chan].scope) || (chan>0 && (p->ch[chan].scope!=p->ch[chan-1].scope)))
 			fprintf(params->fout,"+-- %s\n",p->ch[chan].scope?p->scopes[p->ch[chan].scope]:"");
 		
-		fprintf(params->fout,"%c %10s(%c)[%2i]: ",p->ch[chan].scope?'|':' ',p->ch[chan].name,chan,p->ch[chan].size);
+		fprintf(params->fout,"%c %10s(%c)[%2i]: ",p->ch[chan].scope?'|':' ',p->ch[chan].name,(int)chan,p->ch[chan].size);
 		for(smpl=0;smpl < p->nb ;smpl++){
 			char     type = p->ch[chan].type[smpl];
 			unsigned data = p->ch[chan].val [smpl];
@@ -178,7 +178,10 @@ void showVertical(Parameters*params,Parser*p){
 						w-=1;
 					}
 				}
-				while(w-->0)fprintf(params->fout,"%c",type?type:(data?/*238*/'-':95));
+				while(w-->0){
+					if(type)fprintf(params->fout,"%c",type);
+					else    fprintf(params->fout,"%s",data?"¯":"_");
+				}
 			}else{//bus
 				if(p->ch[chan].type[smpl])//not a data
 					fprintf(params->fout,"%*c",params->width,p->ch[chan].type[smpl]);

@@ -18,10 +18,10 @@ typedef struct{
 }Parameters;
 
 typedef struct{
-	int  size;
-	int  scope;
-	char name[MAX_NAME];
-	char    type[MAX_SAMPLE];//'U','Z','\0'=Data
+	int      size;
+	int      scope;
+	char     name[MAX_NAME];
+	char     type[MAX_SAMPLE];//'U','Z','\0'=Data
 	unsigned val[MAX_SAMPLE];
 }Channel;
 
@@ -44,6 +44,15 @@ void showHelp(char*arg0,Parameters*p){
 				" -i=file	: input file\n"
 				" -s=a,b,c	: scope(s) to display\n"
 				,arg0,p->verbose,p->width,p->round);
+}
+
+int char2id(char*str_id){
+	int i,id;
+	for(i=id=0;str_id[i];i++){
+		id*=94;//shift previous value
+		id+=str_id[i]-'!';//! is 0, ~ is 93
+	}
+	return id;
 }
 
 void parseArgs(int argc,char**argv,Parameters*params){
@@ -164,7 +173,7 @@ void showVertical(Parameters*params,Parser*p){
 		if((!chan && p->ch[chan].scope) || (chan>0 && (p->ch[chan].scope!=p->ch[chan-1].scope)))
 			fprintf(params->fout,"+-- %s\n",p->ch[chan].scope?p->scopes[p->ch[chan].scope]:"");
 		
-		fprintf(params->fout,"%c %10s(%c)[%2i]: ",p->ch[chan].scope?'|':' ',p->ch[chan].name,chan,p->ch[chan].size);
+		fprintf(params->fout,"%c %10s(%c)[%2i]: ",p->ch[chan].scope?'|':' ',p->ch[chan].name,(int)chan,p->ch[chan].size);
 		for(smpl=0;smpl < p->nb ;smpl++){
 			char     type = p->ch[chan].type[smpl];
 			unsigned data = p->ch[chan].val [smpl];
@@ -178,7 +187,10 @@ void showVertical(Parameters*params,Parser*p){
 						w-=1;
 					}
 				}
-				while(w-->0)fprintf(params->fout,"%c",type?type:(data?/*238*/'-':95));
+				while(w-->0){
+					if(type)fprintf(params->fout,"%c",type);
+					else    fprintf(params->fout,"%s",data?"\356":"_");
+				}
 			}else{//bus
 				if(p->ch[chan].type[smpl])//not a data
 					fprintf(params->fout,"%*c",params->width,p->ch[chan].type[smpl]);
@@ -208,8 +220,6 @@ int main(int argc,char**argv){
 	}else{
 		fprintf(stderr,"no input stream\n");
 	}
-	
 	fclose(params.fin);
-	
 	return 0;
 }

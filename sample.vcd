@@ -10,7 +10,7 @@ $end
 $var reg 1 ! e_clk $end
 $var reg 1 " e_rst $end
 $var reg 1 # e_ren $end
-$var reg 1 ^ e_wen $end
+$var reg 1 $ e_wen $end
 $var reg 4 % e_d[3:0] $end
 $var reg 4 & e_q[3:0] $end
 $var reg 1 ' e_empty $end

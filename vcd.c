@@ -3,10 +3,12 @@
 #include <string.h>
 #include <ctype.h>
 
-#define MAX_SAMPLE 256
-#define MAX_CHANNEL 128
-#define MAX_NAME 32//change the scanf too
+#define MAX_SAMPLE 512
+#define MAX_CHANNEL 400
+#define MAX_NAME 128
 #define COUNT(A) (sizeof(A)/sizeof((A)[0]))
+#define VAL(A) # A
+#define TXT(A) VAL(A)
 
 typedef struct{
 	int width;
@@ -22,7 +24,7 @@ typedef struct{
 	int      scope;
 	char     name[MAX_NAME];
 	char     type[MAX_SAMPLE];//'U','Z','\0'=Data
-	unsigned val[MAX_SAMPLE];
+	unsigned val [MAX_SAMPLE];
 }Channel;
 
 typedef struct{
@@ -37,22 +39,13 @@ typedef struct{
 
 void showHelp(char*arg0,Parameters*p){
 	fprintf(stderr,"Usage: %s [FILE] [OPTION]...:\n"
-				" -h	: display this help screen\n"
-				" -v=%i	: verbose level (0:fatal,1:error,2:warning,3:debug)\n"
-				" -w=%i	: sample ascii width\n"
-				" -r=%i	: rounded wave (0:none,1:pipe,2:slash)\n"
-				" -i=file	: input file\n"
-				" -s=a,b,c	: scope(s) to display\n"
-				,arg0,p->verbose,p->width,p->round);
-}
-
-int char2id(char*str_id){
-	int i,id;
-	for(i=id=0;str_id[i];i++){
-		id*=94;//shift previous value
-		id+=str_id[i]-'!';//! is 0, ~ is 93
-	}
-	return id;
+	       " -h	: display this help screen\n"
+	       " -v=%i	: verbose level (0:fatal,1:error,2:warning,3:debug)\n"
+	       " -w=%i	: sample ascii width\n"
+	       " -r=%i	: rounded wave (0:none,1:pipe,2:slash)\n"
+	       " -i=file	: input file\n"
+	       " -s=a,b,c	: scope(s) to display\n"
+	       ,arg0,p->verbose,p->width,p->round);
 }
 
 void parseArgs(int argc,char**argv,Parameters*params){
@@ -74,15 +67,25 @@ void parseArgs(int argc,char**argv,Parameters*params){
 	}
 }
 
+int char2id(char*str_id){
+	int i=strlen(str_id)-1,id=0;
+	for(;i>=0;i--){
+		id*=94;//shift previous value
+		id+=str_id[i]-'!';//! is 0, ~ is 93
+	}
+	return id;
+}
+
 void parseInst(Parameters*params,Parser*p){
 	char token[32];
 	fscanf(params->fin,"%31s",token);
 	//printf("%s\n",token);
 	if(!strcmp("var",token)){
-		int id=0;
-		Channel tmp={};
-		fscanf(params->fin," reg %d %c %31[^ $]",&(tmp.size),(char*)&id,tmp.name);//space in name allowed ?
-		p->ch[id]=tmp;//printf("size=%i <%c> name=<%s>\n",size,id,data);
+		char id_str[4];
+		Channel chan={};
+		fscanf(params->fin," reg %d %3[^ ] %"TXT(MAX_NAME)"[^ $]",&(chan.size),id_str,chan.name);
+		int id=char2id(id_str);
+		p->ch[id]=chan;//printf("size=%i <%c> name=<%s>\n",size,id,data);
 		p->ch[id].scope=p->cur_scopes;
 	}
 	else if(!strcmp("scope",token))         {fscanf(params->fin,"%*127s %127[^ $]",p->scopes[p->cur_scopes=++(p->nb_scopes)]);}
@@ -92,13 +95,13 @@ void parseInst(Parameters*params,Parser*p){
 	else if(!strcmp("comment",token))       {fscanf(params->fin,"\n%*[^$]");}
 	else if(!strcmp("upscope",token))       {fscanf(params->fin,"\n%*[^$]");p->cur_scopes=0;}/*back to root */
 	else if(!strcmp("enddefinitions",token)){fscanf(params->fin,"\n%*[^$]");}
-	else if(!strcmp("end",token)){}
+	else if(!strcmp("end",token))           {}
 	else {printf("unknow token : %s\n",token);}
 }
 
 void parseTime(Parameters*params,Parser*p){
 	long long unsigned stamp=0;
-	int i;char c;
+	int i,c;
 	while((c=fgetc(params->fin))!=EOF){
 		if(isdigit(c)){
 			stamp=stamp*10+(c-'0');
@@ -117,22 +120,27 @@ void parseTime(Parameters*params,Parser*p){
 		}
 	}
 }
-
+/*
+there is 2 kinds of data definition line :
+state    : 1^
+bus data : b0100001001011001110 ^
+*/
 void parseData(Parameters*params,Parser*p){
-	unsigned data=0,base=10;
-	char type='\0';
+	unsigned data=0;
+	char id_str[4],type='\0';
 	int id=0,c=fgetc(params->fin);
 	if(c=='b'){//parsing bus data b%[0-9UZ]+ %c
-		base=2;
 		while((c=fgetc(params->fin))!=EOF && c!=' '){
-			if(isdigit(c))data=data*base+(c-'0');
+			if(isdigit(c))data=data*2+(c-'0');
 			else type=c;//letter (Z,U,...) = undefined type, but we don't know the id yet
 		}
-		id=fgetc(params->fin);
+		fscanf(params->fin,"%3[^\n]",id_str);
+		id=char2id(id_str);
 		p->ch[id].type[p->nb-1]=type;
 		p->ch[id].val [p->nb-1]=data;
 	}else{//parsing state %[0-9UZ] %c
-		id=fgetc(params->fin);
+		fscanf(params->fin,"%3[^\n]",id_str);
+		id=char2id(id_str);
 		if(isalpha(c))p->ch[id].type[p->nb-1]=c;
 		if(isdigit(c))p->ch[id].val [p->nb-1]=c-'0';
 	}
@@ -168,12 +176,10 @@ void showVertical(Parameters*params,Parser*p){
 		if(!p->ch[chan].size)continue;//skip empty ch
 		if(params->scope && (!p->ch[chan].scope || !strstr(params->scope,p->scopes[p->ch[chan].scope])))
 			continue;//skip root node or unrelated node if scope-only wanted
-		
-		
 		if((!chan && p->ch[chan].scope) || (chan>0 && (p->ch[chan].scope!=p->ch[chan-1].scope)))
 			fprintf(params->fout,"+-- %s\n",p->ch[chan].scope?p->scopes[p->ch[chan].scope]:"");
 		
-		fprintf(params->fout,"%c %10s(%c)[%2i]: ",p->ch[chan].scope?'|':' ',p->ch[chan].name,(int)chan,p->ch[chan].size);
+		fprintf(params->fout,"%c %32s[%2i]: ",p->ch[chan].scope?'|':' ',p->ch[chan].name,p->ch[chan].size);
 		for(smpl=0;smpl < p->nb ;smpl++){
 			char     type = p->ch[chan].type[smpl];
 			unsigned data = p->ch[chan].val [smpl];

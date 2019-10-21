@@ -7,6 +7,7 @@
 #define MAX_CHANNEL 400
 #define MAX_NAME 128
 #define COUNT(A) (sizeof(A)/sizeof((A)[0]))
+#define MAX(A,B) (A > B ? A : B)
 #define VAL(A) # A
 #define TXT(A) VAL(A)
 
@@ -14,6 +15,7 @@ typedef struct{
 	int width;
 	int verbose;
 	int round;
+	int colsize;
 	char*scope;
 	FILE*fin;
 	FILE*fout;
@@ -38,14 +40,14 @@ typedef struct{
 }Parser;
 
 void showHelp(char*arg0,Parameters*p){
-	fprintf(stderr,"Usage: %s [FILE] [OPTION]...:\n"
-	       " -h	: display this help screen\n"
-	       " -v=%i	: verbose level (0:fatal,1:error,2:warning,3:debug)\n"
-	       " -w=%i	: sample ascii width\n"
-	       " -r=%i	: rounded wave (0:none,1:pipe,2:slash)\n"
-	       " -i=file	: input file\n"
-	       " -s=a,b,c	: scope(s) to display\n"
-	       ,arg0,p->verbose,p->width,p->round);
+	fprintf(stderr,"Usage: %s [OPTION] [FILE]...:\n"
+	       " -h       : this help screen\n"
+	       " -v=%i    : verbosity (0:fatal,1:error,2:warning,3:debug)\n"
+	       " -w=%i    : width of each sample  (1,2,...)\n"
+	       " -r=%i    : rounded wave (0:none,1:pipe,2:slash)\n"
+	       " -c=%i    : column width\n"
+	       " -s=a,b,c : comma separated scope(s) to display\n"
+	       ,arg0,p->verbose,p->width,p->round,p->colsize);
 }
 
 void parseArgs(int argc,char**argv,Parameters*params){
@@ -53,16 +55,16 @@ void parseArgs(int argc,char**argv,Parameters*params){
 	for(i=1;i<argc;i++){//parse "-" arguments
 		if(argv[i][0]!='-'){
 			params->fin=fopen(argv[i],"r");
-		}else{
-			switch(argv[i][1]){
-				case 'i':params->fin=fopen(argv[i]+3,"r");break;
-				case 'o':params->fout=fopen(argv[i]+3,"w+");break;
-				case 'h':showHelp(argv[0],params);exit(0);break;
-				case 'w':params->width=atoi(argv[i]+3);break;
-				case 'r':params->round=atoi(argv[i]+3);break;
-				case 's':params->scope=argv[i]+3;break;
-				default:fprintf(stderr,"unknow param '%c'",argv[i][1]);
-			}
+			continue;
+		}
+		switch(argv[i][1]){
+			case 'o':params->fout=fopen(argv[i]+3,"w+");break;
+			case 'h':showHelp(argv[0],params);exit(0);break;
+			case 'w':params->width=MAX(1,atoi(argv[i]+3));break;
+			case 'r':params->round=atoi(argv[i]+3);break;
+			case 'c':params->colsize=atoi(argv[i]+3);break;
+			case 's':params->scope=argv[i]+3;break;
+			default:fprintf(stderr,"unknow param '%c'",argv[i][1]);
 		}
 	}
 }
@@ -177,9 +179,9 @@ void showVertical(Parameters*params,Parser*p){
 		if(params->scope && (!p->ch[chan].scope || !strstr(params->scope,p->scopes[p->ch[chan].scope])))
 			continue;//skip root node or unrelated node if scope-only wanted
 		if((!chan && p->ch[chan].scope) || (chan>0 && (p->ch[chan].scope!=p->ch[chan-1].scope)))
-			fprintf(params->fout,"+-- %s\n",p->ch[chan].scope?p->scopes[p->ch[chan].scope]:"");
+			fprintf(params->fout,"┌── %s\n",p->ch[chan].scope?p->scopes[p->ch[chan].scope]:"");
 		
-		fprintf(params->fout,"%c %32s[%2i]: ",p->ch[chan].scope?'|':' ',p->ch[chan].name,p->ch[chan].size);
+		fprintf(params->fout,"%s %*.*s[%2i]: ",p->ch[chan].scope?"│":" ",params->colsize,params->colsize,p->ch[chan].name,p->ch[chan].size);
 		for(smpl=0;smpl < p->nb ;smpl++){
 			char     type = p->ch[chan].type[smpl];
 			unsigned data = p->ch[chan].val [smpl];
@@ -189,22 +191,20 @@ void showVertical(Parameters*params,Parser*p){
 				if(params->round && smpl>0 && !p->ch[chan].type[smpl-1]){
 					if(p->ch[chan].val[smpl]!=p->ch[chan].val[smpl-1]){//the value changed
 						//from H to L or L to H ?
-						fprintf(params->fout,params->round==2?"%c":"|",(p->ch[chan].val[smpl-1]?'\\':'/'));
+						fprintf(params->fout,params->round==2?"%s":"│",(p->ch[chan].val[smpl-1]?"╲":"╱"));
 						w-=1;
 					}
 				}
 				while(w-->0){
 					if(type)fprintf(params->fout,"%c",type);
-					else    fprintf(params->fout,"%s",data?"\356":"_");
+					else    fprintf(params->fout,"%s",data?"▔":"_");
 				}
 			}else{//bus
-				if(p->ch[chan].type[smpl])//not a data
-					fprintf(params->fout,"%*c",params->width,p->ch[chan].type[smpl]);
-				else
-					fprintf(params->fout,"%*X",params->width,p->ch[chan].val[smpl]);
+				int is_bin = p->ch[chan].type[smpl];
+				fprintf(params->fout,is_bin?"%*c":"%*X",params->width, is_bin ? p->ch[chan].type[smpl] : p->ch[chan].val[smpl]);
 			}
 		}
-		fprintf(params->fout,"%c%c\n",params->width>=2?'\n':' ',p->ch[chan].scope && params->width>=2?'|':' ');
+		fprintf(params->fout,"%s%s\n",params->width>=2?"\n":" ",p->ch[chan].scope && params->width>=2?"│":" ");
 	}
 }
 
@@ -213,6 +213,7 @@ int main(int argc,char**argv){
 		.verbose=0,
 		.width=2,
 		.round=2,
+		.colsize=32,
 		.fin=stdin,
 		.fout=stdout,
 	};
@@ -220,12 +221,11 @@ int main(int argc,char**argv){
 	memset(&data,0,sizeof(Parser));
 
 	parseArgs(argc,argv,&params);
-	if(params.fin){
-		parseFile(&params,&data);
-		showVertical(&params,&data);
-	}else{
-		fprintf(stderr,"no input stream\n");
+	if(!params.fin){
+		return fprintf(stderr,"no input stream\n"),-1;
 	}
+	parseFile(&params,&data);
+	showVertical(&params,&data);
 	fclose(params.fin);
 	return 0;
 }

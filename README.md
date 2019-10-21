@@ -1,24 +1,23 @@
-# vcd
+<img src=https://svgur.com/i/Fck.svg width=100% height=200>
 
 VCD file command line viewer
 It can be used a lightweight remplacement to GTKWave (16801 KB vs 6 KB)
 
 ## Usage
 
-vcd [FILE] [OPTION(S)]
+```
+Usage: vcd [OPTION]... [FILE]
 
-### FILE :
-A valid .vcd file (can be passed throught the `-i` options too)
-
-### OPTIONS :
-* -h	: display the help screen
-* -v=0	: verbose level (0:fatal,1:error,2:warning,3:debug)
-* -w=2	: sample ascii width
-* -r=2	: rounded wave (0:none,1:pipe,2:slash)
-* -i=file	: input file
-* -s=a,b,c	: scope(s) to display
+ -h     : display this help screen
+ -v=0   : verbose level (0:fatal,1:error,2:warning,3:debug)
+ -w=2   : sample ascii width (1,2,...)
+ -r=2   : rounded wave (0:none,1:pipe,2:slash)
+ -c=32  : name column width
+ -s=a,b : comma separated scopes to display
+```
 
 ### Note
+
 `stdout` will be used as input stream  if no input file were providen.
 
 So you could do :

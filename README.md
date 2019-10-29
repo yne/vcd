@@ -1,7 +1,12 @@
 <img src=https://svgur.com/i/Fck.svg width=100% height=200>
 
 VCD file command line viewer
-It can be used a lightweight remplacement to GTKWave (16801 KB vs 6 KB)
+
+Lightweight command line remplacement to GTKWave (16801 KB vs 6 KB)
+
+## Download
+
+Windows, Linux and MacOS binaries are available in the [releases page](../../releases)
 
 ## Usage
 
@@ -16,67 +21,15 @@ Usage: vcd [OPTION]... [FILE]
  -s=a,b : comma separated scopes to display
 ```
 
-### Note
-
-`stdout` will be used as input stream  if no input file were providen.
-
-So you could do :
-
-    vcd  < in.vcd > out.txt
-
 ## Examples
 
-    vcd sim_fifo.vcd
-
-will output
-
-```
-43 samples / Fri Nov 21 16:56:29 2014 / 1 fs
-       e_clk(!)[ 1]: ¯¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_
- 
-       e_rst(")[ 1]: ______/¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
- 
-       e_ren(#)[ 1]: ¯¯¯¯¯¯¯¯¯¯\_______/¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯\___/¯¯¯\___________________/¯¯¯¯¯
- 
-    e_d[3:0](%)[ 4]:  Z Z Z Z Z 1 1 Z Z Z Z 2 2 3 3 4 4 5 5 Z Z 6 6 Z Z 7 7 Z Z Z Z Z Z Z Z Z Z Z Z Z Z Z
- 
-    e_q[3:0](&)[ 4]:  U U Z Z Z Z 0 0 1 1 Z Z Z Z Z Z Z Z Z Z Z Z Z Z Z Z 3 3 Z Z 4 4 5 5 6 6 7 7 0 0 Z Z
- 
-     e_empty(')[ 1]: UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
- 
-       e_mid(()[ 1]: UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
- 
-      e_full())[ 1]: UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
- 
-+-- fifo1
-|        clk(*)[ 1]: ¯¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_
-|
-|        rst(+)[ 1]: ______/¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-|
-|        ren(,)[ 1]: ¯¯¯¯¯¯¯¯¯¯\_______/¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯\___/¯¯¯\___________________/¯¯¯¯¯
-|
-|        wen(-)[ 1]: ¯¯¯¯¯¯¯¯¯¯\___/¯¯¯¯¯¯¯\_______________/¯¯¯\___/¯¯¯\___/¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-|
-|     d[3:0](.)[ 4]:  Z Z Z Z Z 1 1 Z Z Z Z 2 2 3 3 4 4 5 5 Z Z 6 6 Z Z 7 7 Z Z Z Z Z Z Z Z Z Z Z Z Z Z Z
-|
-|     q[3:0](/)[ 4]:  U U Z Z Z Z 0 0 1 1 Z Z Z Z Z Z Z Z Z Z Z Z Z Z Z Z 3 3 Z Z 4 4 5 5 6 6 7 7 0 0 Z Z
-|
-|      empty(0)[ 1]: UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
-|
-|        mid(1)[ 1]: UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
-|
-|       full(2)[ 1]: UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
-|
-| w_adr[1:0](3)[ 2]:  U U 0 0 0 0 1 1 1 1 1 1 2 2 3 3 0 0 1 1 1 1 2 2 2 2 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3
-|
-| r_adr[1:0](4)[ 2]:  U U 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 3 3 3 3 0 0 1 1 2 2 3 3 3 3 3 3
-|
-       e_wen(^)[ 1]: ____________________________________________________________________________________
+```bash
+vcd sim_fifo.vcd
+vcd  < in.vcd > out.txt
+vcd -i=sim_fifo.vcd -w=1 -r=0 -s=fifo1
 ```
 
-    vcd -i=sim_fifo.vcd -w=1 -r=0 -s=fifo1
-
-will output only the fifo1 module in a smaller graph without transitions
+# Preview
 
 ```
 43 samples / Fri Nov 21 16:56:29 2014 / 1 fs

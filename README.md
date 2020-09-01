@@ -1,4 +1,4 @@
-<img src=https://svgur.com/i/Fck.svg width=100% height=200>
+<img src=https://svgur.com/i/PAx.svg width=100% height=200>
 
 VCD file command line viewer
 

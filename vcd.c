@@ -205,7 +205,7 @@ void showVertical(Parameters*params,Parser*p){
 				}
 				while(w-->0){
 					if(type)fprintf(params->fout,"%c",type);
-					else    fprintf(params->fout,"%s",data?"▔":"_");
+					else    fprintf(params->fout,"%s",data?"▔":"▁");
 				}
 			}else{//bus
 				int is_bin = p->ch[chan].type[smpl];

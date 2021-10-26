@@ -150,6 +150,7 @@ void parseData(Parameters*params,Parser*p){
 		fscanf(params->fin,"%3[^\n]",id_str);
 		id=char2id(id_str);
 		if(isalpha(c))p->ch[id].type[p->nb-1]=c;
+		else p->ch[id].type[p->nb-1]='\0';//letter (Z,U,X,...) = undefined type
 		if(isdigit(c))p->ch[id].val [p->nb-1]=c-'0';
 	}
 }

@@ -16,6 +16,8 @@ jobs:
       RELEASE_DIR: build
     steps:
     - uses: actions/checkout@v1
+    - name: lint
+      run: diff vcd.c <(clang-format --style=Google vcd.c)
     - name: build
       #https://github.com/multiarch/crossbuild
       run: |

@@ -16,6 +16,7 @@ typedef struct{
 	int verbose;
 	int round;
 	int colsize;
+	int timescalestep;
 	char*scope;
 	FILE*fin;
 	FILE*fout;
@@ -41,13 +42,14 @@ typedef struct{
 
 void showHelp(char*arg0,Parameters*p){
 	fprintf(stderr,"Usage: %s [OPTION] [FILE]...:\n"
-	       " -h:			:this help screen\n"
+	       " -h:			: this help screen\n"
 	       " -v=%i			: verbosity (0:fatal,1:error,2:warning,3:debug)\n"
 	       " -w=%i			: width of each sample  (1,2,...)\n"
 	       " -r=%i			: rounded wave (0:none,1:pipe,2:slash)\n"
 	       " -c=%i			: column width\n"
+	       " -t=%i			: time scale step (0:none,1,10,...)\n"
 	       " -s=a,b,c		: comma separated scope(s) to display\n"
-	       ,arg0,p->verbose,p->width,p->round,p->colsize);
+	       ,arg0,p->verbose,p->width,p->round,p->colsize,p->timescalestep);
 }
 
 void parseArgs(int argc,char**argv,Parameters*params){
@@ -63,6 +65,7 @@ void parseArgs(int argc,char**argv,Parameters*params){
 			case 'w':params->width=MAX(1,atoi(argv[i]+3));break;
 			case 'r':params->round=atoi(argv[i]+3);break;
 			case 'c':params->colsize=atoi(argv[i]+3);break;
+			case 't':params->timescalestep=atoi(argv[i]+3);break;
 			case 's':params->scope=argv[i]+3;break;
 			default:fprintf(stderr,"unknow param '%c'",argv[i][1]);
 		}
@@ -174,6 +177,24 @@ void parseFile(Parameters*params,Parser*p){
 	}
 }
 
+unsigned numDischarges(unsigned n) {
+	unsigned i = 0;
+	do {
+		n = n/10;
+		i += 1;
+	} while (n > 0);
+	return i;
+}
+void numDelete(char* instr, char* outstr) {
+	unsigned index = 0;
+	for(unsigned i = 0; i < strlen(instr); i++)
+		if(instr[i] < '0' || instr[i] > '9'){
+			outstr[index]=instr[i];
+			++index;
+		}
+	outstr[index]='\0';
+}
+
 void showVertical(Parameters*params,Parser*p){
 	int w;
 	unsigned chan,smpl;
@@ -182,13 +203,28 @@ void showVertical(Parameters*params,Parser*p){
 	if(p->scale[0])fprintf(params->fout," / %s",p->scale);
 	fprintf(params->fout,"\n");
 
+	char scalestr[32] = {'\0'};
+	numDelete(p->scale,scalestr);
+
 	for(chan=0;chan < COUNT(p->ch);chan++){
 		if(!p->ch[chan].size)continue;//skip empty ch
 		if(params->scope && (!p->ch[chan].scope || !strstr(params->scope,p->scopes[p->ch[chan].scope])))
 			continue;//skip root node or unrelated node if scope-only wanted
-		if((!chan && p->ch[chan].scope) || (chan>0 && (p->ch[chan].scope!=p->ch[chan-1].scope)))
-			fprintf(params->fout,"┌── %s\n",p->ch[chan].scope?p->scopes[p->ch[chan].scope]:"");
+		if((!chan && p->ch[chan].scope) || (chan>0 && (p->ch[chan].scope!=p->ch[chan-1].scope))){
+			unsigned timescalestep = params->timescalestep;
+			if(timescalestep != 0){
 
+			fprintf(params->fout,"┌── %s%*.*stime: ",p->ch[chan].scope?p->scopes[p->ch[chan].scope]:"",\
+																							params->colsize - strlen(p->ch[chan].scope?p->scopes[p->ch[chan].scope]:"")-2);
+			for(smpl=0;smpl < p->nb;smpl+=timescalestep){
+				unsigned scalenum = smpl*atoi(p->scale);
+				fprintf(params->fout,"▏%d%s%*.*s",scalenum,scalestr,timescalestep*params->width-1-numDischarges(scalenum)-strlen(scalestr));
+			}
+			fprintf(params->fout,"\n│\n");
+			}else
+				fprintf(params->fout,"┌── %s\n",p->ch[chan].scope?p->scopes[p->ch[chan].scope]:"");
+
+		}
 		fprintf(params->fout,"%s %*.*s[%2i]: ",p->ch[chan].scope?"│":" ",params->colsize,params->colsize,p->ch[chan].name,p->ch[chan].size);
 		for(smpl=0;smpl < p->nb ;smpl+=1){
 			char     type = p->ch[chan].type[smpl];
@@ -222,6 +258,7 @@ int main(int argc,char**argv){
 		.width=2,
 		.round=2,
 		.colsize=32,
+		.timescalestep=0,
 		.fin=stdin,
 		.fout=stdout,
 	};

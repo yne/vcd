@@ -18,6 +18,7 @@ Usage: vcd [OPTION]... [FILE]
  -w=2   : sample ascii width (1,2,...)
  -r=2   : rounded wave (0:none,1:pipe,2:slash)
  -c=32  : name column width
+ -t=0   : time scale step (0:none,1,10,...)
  -s=a,b : comma separated scopes to display
 ```
 

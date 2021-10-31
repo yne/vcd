@@ -17,6 +17,8 @@ typedef struct{
 	int round;
 	int colsize;
 	int timescalestep;
+	int beginsmpl;
+	int endsmpl;
 	char*scope;
 	FILE*fin;
 	FILE*fout;
@@ -48,8 +50,10 @@ void showHelp(char*arg0,Parameters*p){
 	       " -r=%i			: rounded wave (0:none,1:pipe,2:slash)\n"
 	       " -c=%i			: column width\n"
 	       " -t=%i			: time scale step (0:none,1,10,...)\n"
+	       " -b=%i			: Begin sample (0:begin,1,...)\n"
+	       " -e=%i			: End sample (0:end,1,...)\n"
 	       " -s=a,b,c		: comma separated scope(s) to display\n"
-	       ,arg0,p->verbose,p->width,p->round,p->colsize,p->timescalestep);
+	       ,arg0,p->verbose,p->width,p->round,p->colsize,p->timescalestep,p->beginsmpl,p->endsmpl);
 }
 
 void parseArgs(int argc,char**argv,Parameters*params){
@@ -66,6 +70,8 @@ void parseArgs(int argc,char**argv,Parameters*params){
 			case 'r':params->round=atoi(argv[i]+3);break;
 			case 'c':params->colsize=atoi(argv[i]+3);break;
 			case 't':params->timescalestep=atoi(argv[i]+3);break;
+			case 'b':params->beginsmpl=atoi(argv[i]+3);break;
+			case 'e':params->endsmpl=atoi(argv[i]+3);break;
 			case 's':params->scope=argv[i]+3;break;
 			default:fprintf(stderr,"unknow param '%c'",argv[i][1]);
 		}
@@ -198,6 +204,8 @@ void numDelete(char* instr, char* outstr) {
 void showVertical(Parameters*params,Parser*p){
 	int w;
 	unsigned chan,smpl;
+	unsigned beginsmpl = (params->beginsmpl>0?params->beginsmpl:0);
+	unsigned endsmpl = (params->endsmpl<p->nb&&params->endsmpl!=0?params->endsmpl:p->nb);
 	if(p->nb      )fprintf(params->fout,"%i samples",p->nb);
 	if(p->date [0])fprintf(params->fout," / %s",p->date);
 	if(p->scale[0])fprintf(params->fout," / %s",p->scale);
@@ -216,7 +224,7 @@ void showVertical(Parameters*params,Parser*p){
 
 			fprintf(params->fout,"┌── %s%*.*stime: ",p->ch[chan].scope?p->scopes[p->ch[chan].scope]:"",\
 																							params->colsize - strlen(p->ch[chan].scope?p->scopes[p->ch[chan].scope]:"")-2);
-			for(smpl=0;smpl < p->nb;smpl+=timescalestep){
+			for(smpl=beginsmpl;smpl<endsmpl;smpl+=timescalestep){
 				unsigned scalenum = smpl*atoi(p->scale);
 				fprintf(params->fout,"▏%d%s%*.*s",scalenum,scalestr,timescalestep*params->width-1-numDischarges(scalenum)-strlen(scalestr));
 			}
@@ -226,7 +234,7 @@ void showVertical(Parameters*params,Parser*p){
 
 		}
 		fprintf(params->fout,"%s %*.*s[%2i]: ",p->ch[chan].scope?"│":" ",params->colsize,params->colsize,p->ch[chan].name,p->ch[chan].size);
-		for(smpl=0;smpl < p->nb ;smpl+=1){
+		for(smpl=beginsmpl;smpl<endsmpl;smpl+=1){
 			char     type = p->ch[chan].type[smpl];
 			unsigned data = p->ch[chan].val [smpl];
 			if(p->ch[chan].size==1){//binary
@@ -259,6 +267,8 @@ int main(int argc,char**argv){
 		.round=2,
 		.colsize=32,
 		.timescalestep=0,
+		.beginsmpl=0,
+		.endsmpl=0,
 		.fin=stdin,
 		.fout=stdout,
 	};

@@ -1,10 +1,12 @@
-name: push to master
+name: master
 
 on:
   push:
     branches:
     - 'master'
-    
+  pull_request:
+    branches:
+    - 'master'
 jobs:
   build:
     strategy:
@@ -22,9 +24,10 @@ jobs:
       #https://github.com/multiarch/crossbuild
       run: |
         mkdir $RELEASE_DIR
-        docker run --rm -v $(pwd):/workdir -e CROSS_TRIPLE=$OS multiarch/crossbuild gcc vcd.c -o $RELEASE_DIR/vcd-$OS
+        docker run --rm -v $(pwd):/workdir -e CROSS_TRIPLE=$OS multiarch/crossbuild gcc -Wall -Werror vcd.c -o $RELEASE_DIR/vcd-$OS
         ls -a $RELEASE_DIR
     - name: publish
+      if: github.event_name == 'push'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |

@@ -1,7 +1,6 @@
 name: push
 
 on: [push]
-
 jobs:
   build:
     strategy:

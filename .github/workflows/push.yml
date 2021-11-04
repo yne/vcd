@@ -1,6 +1,10 @@
-name: push
+name: push to master
 
-on: [push]
+on:
+  push:
+    branches:
+    - 'master'
+    
 jobs:
   build:
     strategy:
@@ -17,7 +21,7 @@ jobs:
       run: |
         mkdir $RELEASE_DIR
         docker run --rm -v $(pwd):/workdir -e CROSS_TRIPLE=$OS multiarch/crossbuild gcc vcd.c -o $RELEASE_DIR/vcd-$OS
-        ls -a build
+        ls -a $RELEASE_DIR
     - name: publish
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

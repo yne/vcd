@@ -1,35 +1,42 @@
 name: push
 
 on: [push]
-
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-latest, windows-latest]
+        os: [x86_64-linux-gnu, arm-linux-gnueabihf, aarch64-linux-gnu, x86_64-apple-darwin, x86_64-w64-mingw32]
+    runs-on: ubuntu-latest
     env:
       OS: ${{ matrix.os }}
+      RELEASE_DIR: build
     steps:
     - uses: actions/checkout@v1
     - name: build
-      run: gcc vcd.c -o vcd
+      #https://github.com/multiarch/crossbuild
+      run: |
+        mkdir $RELEASE_DIR
+        docker run --rm -v $(pwd):/workdir -e CROSS_TRIPLE=$OS multiarch/crossbuild gcc vcd.c -o $RELEASE_DIR/vcd-$OS
+        ls -a build
     - name: publish
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        RELEASE_FILES: vcd
       run: |
-        ls -al
         RELEASE_TAG="$(date +%y%m%d)"
         curl -sL -XPOST -d '{"tag_name": "'$RELEASE_TAG'"}' \
           -H "Authorization: Bearer $GITHUB_TOKEN" \
           -H 'Content-Type: application/json' \
           "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases"
         RELEASE_ID=$(curl -svL https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/$RELEASE_TAG | jq .id)
-        for RELEASE_FILE in $RELEASE_FILES ; do
+        
+        if [[ $OS == "x86_64-w64-mingw32" ]]; then 
+          POSTFIX=".exe"
+        fi
+        cd $RELEASE_DIR
+        for RELEASE_FILE in * ; do
           curl -sL -XPOST -T ${RELEASE_FILE}* \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type:application/octet-stream" \
-            "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$RELEASE_ID/assets?&name=$RELEASE_FILE-$OS"
+            "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$RELEASE_ID/assets?&name=$RELEASE_FILE-$RELEASE_TAG$POSTFIX"
         done
       shell: bash

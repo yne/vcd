@@ -42,7 +42,7 @@ typedef struct {
   Channel ch[MAX_CHANNEL];           // [0] = timestamps
   char scopes[MAX_SCOPE][MAX_NAME];  //[0] = default
   int total, scope_count;
-  double scale;  // duration of each sample
+  float scale;  // duration of each sample
   char date[MAX_NAME], version[MAX_NAME], unit[MAX_NAME];  // file info
   // parsing related values
   int scope_cur;
@@ -89,7 +89,7 @@ void parseVcdInstruction(ParseCtx* p) {
   } else if (!strcmp("version", token)) {
     scanf("\n%" TXT(SFL) "[^$\n]", p->version);
   } else if (!strcmp("timescale", token)) {
-    scanf("\n%lf%" TXT(SFL) "[^$\n]", &p->scale, p->unit);
+    scanf("\n%f%" TXT(SFL) "[^$\n]", &p->scale, p->unit);
   } else if (!strcmp("comment", token)) {
     scanf("\n%*[^$]");
   } else if (!strcmp("upscope", token)) {

@@ -1,4 +1,6 @@
 #include <ctype.h>
+#include <inttypes.h>  // for scanf(u64) portability
+#include <stdint.h>    // u64 typedef
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,11 +40,11 @@ typedef struct {
 } Channel;
 
 typedef struct {
-  long long unsigned timestamps[MAX_SAMPLE];
+  uint64_t timestamps[MAX_SAMPLE];
   Channel ch[MAX_CHANNEL];           // [0] = timestamps
   char scopes[MAX_SCOPE][MAX_NAME];  //[0] = default
   int total, scope_count;
-  double scale;  // duration of each sample
+  float scale;  // duration of each sample
   char date[MAX_NAME], version[MAX_NAME], unit[MAX_NAME];  // file info
   // parsing related values
   int scope_cur;
@@ -89,7 +91,7 @@ void parseVcdInstruction(ParseCtx* p) {
   } else if (!strcmp("version", token)) {
     scanf("\n%" TXT(SFL) "[^$\n]", p->version);
   } else if (!strcmp("timescale", token)) {
-    scanf("\n%lf%" TXT(SFL) "[^$\n]", &p->scale, p->unit);
+    scanf("\n%f%" TXT(SFL) "[^$\n]", &p->scale, p->unit);
   } else if (!strcmp("comment", token)) {
     scanf("\n%*[^$]");
   } else if (!strcmp("upscope", token)) {
@@ -114,7 +116,7 @@ void parseVcdTimestamp(ParseCtx* p) {
       ch->samples[p->total] = ch->samples[p->total - 1];
     }
   }
-  scanf("%llu", &p->timestamps[p->total]);
+  scanf("%" PRIu64, &p->timestamps[p->total]);
   p->total++;
 }
 /*

@@ -177,7 +177,7 @@ void printYml(ParseCtx* p, PrintOpt* opt) {
   printf("    scale: %.2f\n", p->scale);
   printf("    unit: %s\n", p->unit ?: "?");
   printf("    %-*s: %s", p->ch_lim, "line", opt->start);
-  for (double smpl = 0; smpl < p->total; smpl += ITV_TIME) {
+  for (double smpl = opt->skip; smpl < p->total; smpl += ITV_TIME) {
     printf("%-*g ", ITV_TIME * zoom - 1, smpl * p->scale);
   }
   printf("%s\nchannels:\n", opt->end);

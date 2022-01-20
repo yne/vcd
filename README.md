@@ -46,6 +46,10 @@ See [releases page](../../releases)
 
 ```bash
 cc vcd.c -o vcd
+# classic style:
+make && sudo make install
+# custom limit:
+cc vcd.c -o vcd -DMAX_SCOPE=32 -DMAX_CHANNEL=400 -DMAX_SAMPLE=2048
 ```
 
 ## Usage

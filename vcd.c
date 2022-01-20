@@ -7,14 +7,21 @@
 
 #define USAGE "USAGE: vcd < in.vcd > out.ascii :\n"
 #define PROLOG "Fatal error. Send your VCD at https://github.com/yne/vcd/issue"
+#define REBUILD(D) #D " reached (" VAL(D) "), rebuild with -D" #D "=...\n"
 #define die(...) exit(fprintf(stderr, PROLOG "\nReason: " __VA_ARGS__))
 
 #define SFL 127             // scanf limit (for MAX_NAME)
 #define MAX_NAME (SFL + 1)  // parsing token (channel name, scope name, ...)
-#define MAX_SCOPE 32        // how many char scopes[] to allocate
-#define MAX_CHANNEL 400     // how many Channel to allocate 96*96 = 8836
-#define MAX_SAMPLE 2048     // how many Sample to allocate
-#define ITV_TIME 10         // sample interval to display timestamp
+#ifndef MAX_SCOPE
+#define MAX_SCOPE 32  // how many char scopes[] to allocate
+#endif
+#ifndef MAX_CHANNEL
+#define MAX_CHANNEL 400  // how many Channel to allocate 96*96 = 8836
+#endif
+#ifndef MAX_SAMPLE
+#define MAX_SAMPLE 2048  // how many Sample to allocate
+#endif
+#define ITV_TIME 10                 // sample interval to display timestamp
 #define VALUES "0123456789zZxXbU-"  // allowed bus values/types
 #define COUNT(A) (sizeof(A) / sizeof(*A))
 #define MAX(A, B) (A > B ? A : B)
@@ -57,7 +64,7 @@ int chanId(char* str_id) {
   for (int i = strlen(str_id) - 1; i >= 0; i--) {
     id = (id * 94) + str_id[i] - '!';
   }
-  if (id > MAX_CHANNEL) die("%s is over MAX_CHANNEL", str_id);
+  if (id > MAX_CHANNEL) die(REBUILD(MAX_CHANNEL));
   return id;
 }
 
@@ -80,9 +87,7 @@ void parseVcdInstruction(ParseCtx* p) {
     p->ch[chanId(id)] = c;
   } else if (!strcmp("scope", token)) {
     p->scope_count++;
-    if (p->scope_count == MAX_SCOPE) {
-      die("MAX_SCOPE reached\n");
-    }
+    if (p->scope_count == MAX_SCOPE) die(REBUILD(MAX_SCOPE));
     p->scope_cur = p->scope_count;
     scanf("%*s %" TXT(SFL) "[^ $]", p->scopes[p->scope_cur]);
     p->scope_lim = MAX(p->scope_lim, strlen(p->scopes[p->scope_cur]));
@@ -107,9 +112,7 @@ void parseVcdInstruction(ParseCtx* p) {
 }
 /* Parse a time line (ex: '#210000000') and copy all previous samples values */
 void parseVcdTimestamp(ParseCtx* p) {
-  if (p->total >= COUNT(p->ch[0].samples)) {
-    die("MAX_SAMPLE reached");
-  }
+  if (p->total >= COUNT(p->ch[0].samples)) die(REBUILD(MAX_SAMPLE));
   // copy previous sample on every channel
   if (p->total > 0) {
     for (Channel* ch = p->ch; ch < p->ch + COUNT(p->ch); ch++) {
@@ -121,8 +124,10 @@ void parseVcdTimestamp(ParseCtx* p) {
 }
 /*
 sample line end with the channel ID and start either with a state or data:
-state example: "1^" , "Z^"
-data  example: "b0100 ^"
+1^
+Z^
+b0100 ^
+0! 0" 1# 0$ 1% 0& 1'
 */
 void parseVcdSample(ParseCtx* p, int c) {
   Sample s = {'\0', 0};
@@ -141,7 +146,7 @@ void parseVcdSample(ParseCtx* p, int c) {
     s.val = isdigit(c) ? c - '0' : 0;
   }
   char id_str[MAX_NAME];
-  scanf("%" TXT(SFL) "[^\n]", id_str);
+  scanf("%" TXT(SFL) "[^ \n]", id_str);
   p->ch[chanId(id_str)].samples[p->total - 1] = s;
 }
 
@@ -216,7 +221,8 @@ int main(int argc, char** argv) {
                   getenv("STX") ?: "\"",      getenv("ETX") ?: "\"",
                   atoi(getenv("SKIP") ?: "0")};
   // PrintOpt opt = {"_", "/", "#", "\\"} {"▁", "╱", "▔", "╲"};
-  ParseCtx ctx = {};
+  static ParseCtx ctx =
+      {};  // allow for more space (32MB!) in .data than in stack
   parseVcd(&ctx);
   printYml(&ctx, &opt);
   return 0;

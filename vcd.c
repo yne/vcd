@@ -10,8 +10,7 @@
 #define REBUILD(D) #D " reached (" VAL(D) "), rebuild with -D" #D "=...\n"
 #define die(...) exit(fprintf(stderr, PROLOG "\nReason: " __VA_ARGS__))
 
-#define SFL 127             // scanf limit (for MAX_NAME)
-#define MAX_NAME (SFL + 1)  // parsing token (channel name, scope name, ...)
+#define SFL 127  // scanf Token limit
 #ifndef MAX_SCOPE
 #define MAX_SCOPE 32  // how many char scopes[] to allocate
 #endif
@@ -25,9 +24,10 @@
 #define VAL(A) #A
 #define TXT(A) VAL(A)
 
+typedef char Token[SFL + 1];  // parsing token (channel name, scope name, ...)
 typedef struct {
   char *low, *raise, *high, *drown, *start, *end;
-  int skip;
+  unsigned skip;
 } PrintOpt;
 typedef struct {
   // could have as much state as it bus size but nobody handle such case
@@ -37,45 +37,45 @@ typedef struct {
   unsigned val;
 } Sample;
 typedef struct {
-  int size;
-  int scope;
-  char name[MAX_NAME];
+  unsigned size;
+  unsigned scope;
+  Token name;
   Sample* samples;
 } Channel;
 
 typedef struct {
-  Channel ch[MAX_CHANNEL];           // [0] = timestamps
-  char scopes[MAX_SCOPE][MAX_NAME];  //[0] = default
-  int total, scope_count;
-  float scale;  // duration of each sample
-  char date[MAX_NAME], version[MAX_NAME], unit[MAX_NAME];  // file info
+  Channel ch[MAX_CHANNEL];  // [0] = timestamps
+  Token scopes[MAX_SCOPE];  // [0] = default
+  unsigned total, scope_count;
+  float scale;                // duration of each sample
+  Token date, version, unit;  // file info
   // parsing related values
-  int scope_cur;
+  unsigned scope_cur;
   unsigned scope_lim, ch_lim, sz_lim;
 } ParseCtx;
 
 /* convert a base-94 chan id (!...~) to it integer equivalent (0...93) */
-int chanId(char* str_id) {
-  int id = 0;
-  for (int i = strlen(str_id) - 1; i >= 0; i--) {
-    id = (id * 94) + str_id[i] - '!';
+size_t chanId(char* str_id) {
+  size_t id = 0;
+  for (size_t i = strlen(str_id); i >= 1; i--) {
+    id = (id * 94) + str_id[i - 1] - '!';
   }
   if (id > MAX_CHANNEL) die(REBUILD(MAX_CHANNEL));
   return id;
 }
 
-int unilen(char* s) {
-  int j = 0;
+size_t unilen(char* s) {
+  size_t j = 0;
   for (; *s; s++) j += ((*s & 0xc0) != 0x80);
   return j;
 }
 
 /* read a $instruction and it opt if needed until $end*/
 void parseVcdInstruction(ParseCtx* p) {
-  char token[MAX_NAME];
+  Token token;
   scanf("%" TXT(SFL) "s", token);
   if (!strcmp("var", token)) {
-    char id[MAX_NAME];
+    Token id;
     Channel c = {.scope = p->scope_cur, .samples = malloc(sizeof(Sample))};
     scanf(" %*s %d %" TXT(SFL) "[^ ] %" TXT(SFL) "[^$]", &c.size, id, c.name);
     p->ch_lim = MAX(p->ch_lim, strlen(c.name));
@@ -143,7 +143,7 @@ void parseVcdSample(ParseCtx* p, int c) {
     s.state = isalpha(c) ? c : '\0';
     s.val = isdigit(c) ? c - '0' : 0;
   }
-  char id_str[MAX_NAME];
+  Token id_str;
   scanf("%" TXT(SFL) "[^ \n]", id_str);
   p->ch[chanId(id_str)].samples[p->total - 1] = s;
 }

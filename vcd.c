@@ -18,9 +18,6 @@
 #ifndef MAX_CHANNEL
 #define MAX_CHANNEL 400  // how many Channel to allocate 96*96 = 8836
 #endif
-#ifndef MAX_SAMPLE
-#define MAX_SAMPLE 2048  // how many Sample to allocate
-#endif
 #define ITV_TIME 10                 // sample interval to display timestamp
 #define VALUES "0123456789zZxXbU-"  // allowed bus values/types
 #define COUNT(A) (sizeof(A) / sizeof(*A))
@@ -43,11 +40,10 @@ typedef struct {
   int size;
   int scope;
   char name[MAX_NAME];
-  Sample samples[MAX_SAMPLE];
+  Sample* samples;
 } Channel;
 
 typedef struct {
-  uint64_t timestamps[MAX_SAMPLE];
   Channel ch[MAX_CHANNEL];           // [0] = timestamps
   char scopes[MAX_SCOPE][MAX_NAME];  //[0] = default
   int total, scope_count;
@@ -80,7 +76,7 @@ void parseVcdInstruction(ParseCtx* p) {
   scanf("%" TXT(SFL) "s", token);
   if (!strcmp("var", token)) {
     char id[MAX_NAME];
-    Channel c = {.scope = p->scope_cur};  // placeholder until id found
+    Channel c = {.scope = p->scope_cur, .samples = malloc(sizeof(Sample))};
     scanf(" %*s %d %" TXT(SFL) "[^ ] %" TXT(SFL) "[^$]", &c.size, id, c.name);
     p->ch_lim = MAX(p->ch_lim, strlen(c.name));
     p->sz_lim = MAX(p->sz_lim, c.size);
@@ -112,14 +108,16 @@ void parseVcdInstruction(ParseCtx* p) {
 }
 /* Parse a time line (ex: '#210000000') and copy all previous samples values */
 void parseVcdTimestamp(ParseCtx* p) {
-  if (p->total >= COUNT(p->ch[0].samples)) die(REBUILD(MAX_SAMPLE));
   // copy previous sample on every channel
   if (p->total > 0) {
     for (Channel* ch = p->ch; ch < p->ch + COUNT(p->ch); ch++) {
+      if (!ch->size) continue;  // skip unused channels
+      ch->samples = realloc(ch->samples, sizeof(Sample) * (p->total + 1));
       ch->samples[p->total] = ch->samples[p->total - 1];
     }
   }
-  scanf("%" PRIu64, &p->timestamps[p->total]);
+  uint64_t _unused;
+  scanf("%" PRIu64, &_unused);  // p->timestamps[p->total]
   p->total++;
 }
 /*
@@ -221,8 +219,7 @@ int main(int argc, char** argv) {
                   getenv("STX") ?: "\"",      getenv("ETX") ?: "\"",
                   atoi(getenv("SKIP") ?: "0")};
   // PrintOpt opt = {"_", "/", "#", "\\"} {"▁", "╱", "▔", "╲"};
-  static ParseCtx ctx =
-      {};  // allow for more space (32MB!) in .data than in stack
+  ParseCtx ctx = {};
   parseVcd(&ctx);
   printYml(&ctx, &opt);
   return 0;

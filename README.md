@@ -1,4 +1,4 @@
-<img src=https://svgur.com/i/bp1.svg width=100% height=200>
+<img src=.github/logo.svg width=100% height=200>
 
 Value Change Dump (.vcd) command line viewer for Windows, Linux and MacOS
 
@@ -38,18 +38,25 @@ channels:
     r_adr[1:0] : "1 1 1 1 1 1 1 1 1 2 2 2 2 3 3 3 3 0 0 1 1 2 2 3 3 3 3 3 3 3 "
 ```
 
-## Download
+## Installation
 
-See [releases page](../../releases)
+### From prebuilt binary
 
-## Build
+Manually download install a [prebuilt binary](../../releases)
+
+### From sources
 
 ```bash
-cc vcd.c -o vcd
-# classic style:
-make && sudo make install
-# custom limit:
-cc vcd.c -o vcd -DMAX_SCOPE=32 -DMAX_CHANNEL=400 -DMAX_SAMPLE=2048
+make
+sudo make install
+```
+
+### From Package Manager
+
+Arch-based distribution:
+
+```bash
+yay -S vcd
 ```
 
 ## Usage

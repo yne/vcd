@@ -1,0 +1,48 @@
+name: build
+
+on: [push, pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: DoozyX/clang-format-lint-action@v0.13
+      with: {style: Google}
+  build:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        cc: [ gcc, clang ] 
+    needs: check
+    runs-on: ${{matrix.os}}
+    steps:
+      - uses: actions/checkout@v2
+      - if: startswith(matrix.os, 'windows-')
+        run: make CC="${{matrix.cc}}" TARGET="vcd-${{matrix.os}}-${{matrix.cc}}.exe"
+      - if: startswith(matrix.os, 'windows-') == false
+        run: make CC="${{matrix.cc}}" TARGET="vcd-${{matrix.os}}-${{matrix.cc}}"
+      - uses: actions/upload-artifact@v2
+        with:
+          path: vcd-${{matrix.os}}-${{matrix.cc}}*
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') == false
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - id: date
+        run: echo "::set-output name=yymmdd::$(date +%y%m%d)"
+      - uses: actions/checkout@v2
+      - uses: mathieudutour/github-tag-action@v6.0
+        with:
+          custom_tag: ${{ steps.date.outputs.yymmdd }}
+          tag_prefix: 
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true # tag exist
+      - uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.date.outputs.yymmdd }}
+          files: |
+            vcd-ubuntu-latest
+            vcd-windows-latest
+            vcd-macos-latest

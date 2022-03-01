@@ -103,7 +103,7 @@ void parseVcdInstruction(ParseCtx* p) {
   } else if (!strcmp("dumpvars", token)) {
   } else if (!strcmp("end", token)) {
   } else {
-    printf("unknow token : %s\n", token);
+    printf("unknown token : %s\n", token);
   }
 }
 /* Parse a time line (ex: '#210000000') and copy all previous samples values */

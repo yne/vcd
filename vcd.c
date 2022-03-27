@@ -6,7 +6,7 @@
 #include <string.h>
 
 #define USAGE "USAGE: vcd < in.vcd > out.ascii :\n"
-#define PROLOG "Fatal error. Send your VCD at https://github.com/yne/vcd/issue"
+#define PROLOG "Fatal error. Send the VCD on https://github.com/yne/vcd/issues"
 #define REBUILD(D) #D " reached (" VAL(D) "), rebuild with -D" #D "=...\n"
 #define die(...) exit(fprintf(stderr, PROLOG "\nReason: " __VA_ARGS__))
 
@@ -46,7 +46,7 @@ typedef struct {
 typedef struct {
   Channel ch[MAX_CHANNEL];  // [0] = timestamps
   Token scopes[MAX_SCOPE];  // [0] = default
-  unsigned total, scope_count;
+  unsigned total, scope_count, chan_str;
   float scale;                // duration of each sample
   Token date, version, unit;  // file info
   // parsing related values
@@ -54,11 +54,15 @@ typedef struct {
   unsigned scope_lim, ch_lim, sz_lim;
 } ParseCtx;
 
-/* convert a base-94 chan id (!...~) to it integer equivalent (0...93) */
-size_t chanId(char* str_id) {
+/* convert a base-94 or 'c'+num chan id (!...~) to integer */
+size_t chanId(char* str_id, unsigned isStr) {
   size_t id = 0;
-  for (size_t i = strlen(str_id); i >= 1; i--) {
-    id = (id * 94) + str_id[i - 1] - '!';
+  if (isStr) {
+    id = atoi(str_id + 1);
+  } else {
+    for (size_t i = strlen(str_id); i >= 1; i--) {
+      id = (id * 94) + str_id[i - 1] - '!';
+    }
   }
   if (id > MAX_CHANNEL) die(REBUILD(MAX_CHANNEL));
   return id;
@@ -80,7 +84,7 @@ void parseVcdInstruction(ParseCtx* p) {
     scanf(" %*s %d %" TXT(SFL) "[^ ] %" TXT(SFL) "[^$]", &c.size, id, c.name);
     p->ch_lim = MAX(p->ch_lim, strlen(c.name));
     p->sz_lim = MAX(p->sz_lim, c.size);
-    p->ch[chanId(id)] = c;
+    p->ch[chanId(id, p->chan_str)] = c;
   } else if (!strcmp("scope", token)) {
     p->scope_count++;
     if (p->scope_count == MAX_SCOPE) die(REBUILD(MAX_SCOPE));
@@ -91,6 +95,8 @@ void parseVcdInstruction(ParseCtx* p) {
     scanf("\n%" TXT(SFL) "[^$\n]", p->date);
   } else if (!strcmp("version", token)) {
     scanf("\n%" TXT(SFL) "[^$\n]", p->version);
+    // ROHD use 's'+digit channel ID sequencing
+    p->chan_str = strstr(p->version, "ROHD") != NULL;
   } else if (!strcmp("timescale", token)) {
     scanf("\n%f%" TXT(SFL) "[^$\n]", &p->scale, p->unit);
   } else if (!strcmp("comment", token)) {
@@ -145,7 +151,8 @@ void parseVcdSample(ParseCtx* p, int c) {
   }
   Token id_str;
   scanf("%" TXT(SFL) "[^ \n]", id_str);
-  p->ch[chanId(id_str)].samples[p->total - 1] = s;
+  if (!p->total) return;  // ROHD define value BEFORE timestamp #0
+  p->ch[chanId(id_str, p->chan_str)].samples[p->total - 1] = s;
 }
 
 void parseVcd(ParseCtx* p) {

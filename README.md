@@ -69,11 +69,12 @@ vcd < in.vcd | less -S  # scrollable view
 
 ## Query
 
-The default `vcd` output is a valid YAML file, so you can process it with many tools like yq (a `jq` for yaml)
+The default `vcd` output is a valid YAML file, so you can process it with many tools like [`yq`](https://github.com/mikefarah/yq) or [`shyaml`](https://github.com/0k/shyaml)
 
 ```bash
 # print the first 9 sample of the clk channel in the fifo1 scope
 vcd < samples/basic.vcd | yq .channels.fifo1.clk[0:9]
+vcd < samples/basic.vcd | shyaml -y get-value channels.default.e_clk
 ```
 
 ## Styling

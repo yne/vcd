@@ -81,7 +81,7 @@ void parseVcdInstruction(ParseCtx* p) {
   if (!strcmp("var", token)) {
     Token id;
     Channel c = {.scope = p->scope_cur, .samples = malloc(sizeof(Sample))};
-    scanf(" %*s %d %" TXT(SFL) "[^ ] %" TXT(SFL) "[^$]", &c.size, id, c.name);
+    scanf(" %*s %u %" TXT(SFL) "[^ ] %" TXT(SFL) "[^$]", &c.size, id, c.name);
     p->ch_lim = MAX(p->ch_lim, strlen(c.name));
     p->sz_lim = MAX(p->sz_lim, c.size);
     p->ch[chanId(id, p->chan_str)] = c;
@@ -191,7 +191,7 @@ void printYml(ParseCtx* p, PrintOpt* opt) {
     printf("%-*g ", ITV_TIME * zoom - 1, smpl * p->scale);
   }
   printf("%s\nchannels:\n", opt->end);
-  for (Channel* ch = p->ch; ch - p->ch < COUNT(p->ch); ch++) {
+  for (Channel* ch = p->ch; ch - p->ch < (signed)COUNT(p->ch); ch++) {
     // skip empty ch
     if (!ch->size) continue;
     // print scope (if changed)
@@ -220,13 +220,13 @@ void printYml(ParseCtx* p, PrintOpt* opt) {
   }
 }
 
-int main(int argc, char** argv) {
+int main() {
   PrintOpt opt = {getenv("LOW") ?: "▁",       getenv("RAISE") ?: "╱",
                   getenv("HIGH") ?: "▔",      getenv("DROWN") ?: "╲",
                   getenv("STX") ?: "\"",      getenv("ETX") ?: "\"",
                   atoi(getenv("SKIP") ?: "0")};
   // PrintOpt opt = {"_", "/", "#", "\\"} {"▁", "╱", "▔", "╲"};
-  ParseCtx ctx = {};
+  ParseCtx ctx = {0};
   parseVcd(&ctx);
   printYml(&ctx, &opt);
   return 0;

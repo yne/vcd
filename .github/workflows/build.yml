@@ -13,15 +13,17 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
-        cc: [ gcc, clang ] 
+        cc: [ gcc, clang ]
     needs: check
     runs-on: ${{matrix.os}}
     steps:
       - uses: actions/checkout@v2
-      - if: startswith(matrix.os, 'windows-')
-        run: make CC="${{matrix.cc}}" TARGET="vcd-${{matrix.os}}-${{matrix.cc}}.exe"
+      - if: ${{ startswith(matrix.os, 'windows-') && matrix.cc == 'gcc'}}
+        run: make CC="${{matrix.cc}}" && mv vcd.exe vcd-${{matrix.os}}-${{matrix.cc}}.exe
+      - if: ${{ startswith(matrix.os, 'windows-') && matrix.cc == 'clang'}}
+        run: make CC="${{matrix.cc}}" && mv vcd     vcd-${{matrix.os}}-${{matrix.cc}}.exe
       - if: startswith(matrix.os, 'windows-') == false
-        run: make CC="${{matrix.cc}}" TARGET="vcd-${{matrix.os}}-${{matrix.cc}}"
+        run: make CC="${{matrix.cc}}" && mv vcd     vcd-${{matrix.os}}-${{matrix.cc}}
       - uses: actions/upload-artifact@v2
         with:
           path: vcd-${{matrix.os}}-${{matrix.cc}}*

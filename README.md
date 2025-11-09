@@ -46,9 +46,17 @@ Manually download install a [prebuilt binary](../../releases)
 
 ### From sources
 
+Requires [Zig](https://ziglang.org/) compiler (v0.11.0 or later).
+
 ```bash
 make
 sudo make install
+```
+
+Or build directly with Zig:
+
+```bash
+zig build-exe vcd.zig -O ReleaseFast
 ```
 
 ### From Package Manager

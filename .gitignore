@@ -1,0 +1,15 @@
+# Build artifacts
+vcd
+*.o
+*.exe
+
+# Zig build cache
+zig-cache/
+zig-out/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
